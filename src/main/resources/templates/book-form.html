@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head(${editing ? 'Edit book' : 'Add a book'})}"></head>
+<body>
+<header th:replace="~{fragments :: topbar(${editing ? '' : 'new'})}"></header>
+
+<main>
+    <a class="back" th:href="${editing} ? @{/books/{id}(id=${bookId})} : @{/books}"
+       th:text="${editing ? 'Back to book' : 'Back to catalogue'}">Back to catalogue</a>
+
+    <div class="page-head">
+        <div>
+            <h1 th:text="${editing ? 'Edit book' : 'Add a book'}">Add a book</h1>
+            <p th:text="${editing ? 'Change the details or choose a new cover image.' : 'Fill in the details and, if you have one, add a cover image.'}">
+                Fill in the details and, if you have one, add a cover image.
+            </p>
+        </div>
+    </div>
+
+    <!-- enctype="multipart/form-data" is required to send the image file -->
+    <form class="form-layout" th:action="@{${formAction}}" th:object="${bookForm}" method="post"
+          enctype="multipart/form-data" novalidate>
+
+        <div class="panel form-grid">
+            <div class="flash err" th:if="${#fields.hasGlobalErrors()}">
+                <p th:each="err : ${#fields.globalErrors()}" th:text="${err}">error</p>
+            </div>
+
+            <label class="field" th:classappend="${#fields.hasErrors('title')} ? 'has-error'">
+                <span>Title</span>
+                <input type="text" th:field="*{title}">
+                <span class="field-error" th:if="${#fields.hasErrors('title')}" th:errors="*{title}">error</span>
+            </label>
+
+            <div class="row2">
+                <label class="field" th:classappend="${#fields.hasErrors('authorId')} ? 'has-error'">
+                    <span>Author</span>
+                    <select th:field="*{authorId}">
+                        <option value="">Choose an author</option>
+                        <option th:each="a : ${authors}" th:value="${a.id}" th:text="${a.fullName}">Author</option>
+                    </select>
+                    <span class="field-error" th:if="${#fields.hasErrors('authorId')}" th:errors="*{authorId}">error</span>
+                </label>
+                <label class="field" th:classappend="${#fields.hasErrors('isbn')} ? 'has-error'">
+                    <span>ISBN <span class="hint">(10 or 13 digits)</span></span>
+                    <input type="text" th:field="*{isbn}" placeholder="9781234567897" inputmode="numeric">
+                    <span class="field-error" th:if="${#fields.hasErrors('isbn')}" th:errors="*{isbn}">error</span>
+                </label>
+            </div>
+
+            <div class="row3">
+                <label class="field" th:classappend="${#fields.hasErrors('publishedYear')} ? 'has-error'">
+                    <span>Year</span>
+                    <input type="number" th:field="*{publishedYear}" placeholder="2024">
+                    <span class="field-error" th:if="${#fields.hasErrors('publishedYear')}" th:errors="*{publishedYear}">error</span>
+                </label>
+                <label class="field" th:classappend="${#fields.hasErrors('pages')} ? 'has-error'">
+                    <span>Pages</span>
+                    <input type="number" th:field="*{pages}">
+                    <span class="field-error" th:if="${#fields.hasErrors('pages')}" th:errors="*{pages}">error</span>
+                </label>
+                <label class="field" th:classappend="${#fields.hasErrors('price')} ? 'has-error'">
+                    <span>Price ($)</span>
+                    <input type="number" step="0.01" th:field="*{price}" placeholder="9.99">
+                    <span class="field-error" th:if="${#fields.hasErrors('price')}" th:errors="*{price}">error</span>
+                </label>
+            </div>
+
+            <div class="field" th:classappend="${#fields.hasErrors('categoryIds')} ? 'has-error'">
+                <span class="field-label">Categories <span class="hint">(choose any)</span></span>
+                <div class="pills">
+                    <label class="pill" th:each="c : ${categories}">
+                        <input type="checkbox" th:field="*{categoryIds}" th:value="${c.id}">
+                        <span th:text="${c.name}">Fantasy</span>
+                    </label>
+                </div>
+                <span class="field-error" th:if="${#fields.hasErrors('categoryIds')}" th:errors="*{categoryIds}">error</span>
+            </div>
+
+            <label class="field" th:classappend="${#fields.hasErrors('description')} ? 'has-error'">
+                <span>Description</span>
+                <textarea th:field="*{description}" rows="5"></textarea>
+                <span class="field-error" th:if="${#fields.hasErrors('description')}" th:errors="*{description}">error</span>
+            </label>
+
+            <div class="form-actions">
+                <button class="btn" type="submit" th:text="${editing ? 'Save changes' : 'Add book'}">Add book</button>
+                <a class="btn quiet" th:href="${editing} ? @{/books/{id}(id=${bookId})} : @{/books}">Cancel</a>
+            </div>
+        </div>
+
+        <aside class="cover-picker">
+            <span class="field-label">Cover image</span>
+            <span class="cover">
+                <img id="cover-preview" alt="Cover preview"
+                     th:src="${currentCoverUrl != null} ? @{${currentCoverUrl}} : null"
+                     th:hidden="${currentCoverUrl == null}">
+                <span class="placeholder" id="cover-placeholder" th:hidden="${currentCoverUrl != null}">
+                    No image yet
+                </span>
+            </span>
+            <input type="file" name="cover" id="cover-input" accept="image/png,image/jpeg,image/gif,image/webp">
+            <span class="hint">JPG, PNG, GIF or WebP, up to 5 MB.
+                <th:block th:if="${editing}">Leave empty to keep the current cover.</th:block></span>
+        </aside>
+    </form>
+</main>
+
+<script>
+    // Shows the chosen image before the form is submitted.
+    document.getElementById('cover-input').addEventListener('change', function (event) {
+        var file = event.target.files && event.target.files[0];
+        if (!file) { return; }
+        var preview = document.getElementById('cover-preview');
+        preview.src = URL.createObjectURL(file);
+        preview.hidden = false;
+        document.getElementById('cover-placeholder').hidden = true;
+    });
+</script>
+</body>
+</html>

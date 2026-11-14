@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head(${book.title})}"></head>
+<body>
+<header th:replace="~{fragments :: topbar('')}"></header>
+
+<main>
+    <div class="flash ok" th:if="${message}" th:text="${message}"></div>
+    <div class="flash err" th:if="${error}" th:text="${error}"></div>
+
+    <a class="back" th:href="@{/books}">Back to catalogue</a>
+
+    <div class="detail">
+        <div class="detail-side">
+            <span class="cover">
+                <img th:if="${book.coverImageUrl != null}" th:src="@{${book.coverImageUrl}}" th:alt="${'Cover of ' + book.title}">
+                <span class="initial" th:unless="${book.coverImageUrl != null}"
+                      th:text="${#strings.substring(book.title, 0, 1)}">B</span>
+            </span>
+
+            <!-- File upload form: enctype="multipart/form-data", field name "file" -->
+            <form class="upload-box" method="post" enctype="multipart/form-data"
+                  th:action="@{/books/{id}/cover(id=${book.id})}">
+                <label class="field">
+                    <span>Replace cover</span>
+                    <input type="file" name="file" accept="image/*" required>
+                </label>
+                <button class="btn quiet block" type="submit">Upload image</button>
+            </form>
+        </div>
+
+        <div class="detail-main">
+            <h1 th:text="${book.title}">Title</h1>
+            <p class="byline" th:text="${'by ' + book.authorName}">by Author</p>
+
+            <div class="detail-rating">
+                <th:block th:if="${book.averageRating != null}">
+                    <span class="stars" th:text="${book.ratingStars()}" aria-hidden="true">★★★★☆</span>
+                    <span class="muted"
+                          th:text="${book.averageRating + ' out of 5, ' + book.reviewCount + (book.reviewCount == 1 ? ' review' : ' reviews')}">4.5 out of 5</span>
+                </th:block>
+                <span class="muted" th:if="${book.averageRating == null}">No reviews yet</span>
+            </div>
+
+            <p class="description" th:if="${book.description != null}" th:text="${book.description}">Description</p>
+
+            <dl class="facts">
+                <div><dt>Published</dt><dd th:text="${book.publishedYear}">1937</dd></div>
+                <div><dt>Pages</dt><dd th:text="${book.pages != null ? book.pages : '–'}">310</dd></div>
+                <div><dt>Price</dt><dd th:text="${'$' + #numbers.formatDecimal(book.price, 1, 2)}">$14.99</dd></div>
+                <div><dt>ISBN</dt><dd th:text="${book.isbn}">9780547928227</dd></div>
+                <div><dt>Categories</dt>
+                    <dd th:text="${book.categories.isEmpty() ? '–' : #strings.listJoin(book.categories.![name], ', ')}">Fantasy</dd>
+                </div>
+            </dl>
+
+            <p class="file-path" th:if="${book.coverImagePath != null}">
+                Cover stored at <code th:text="${book.coverImagePath}">uploads/covers/x.png</code>
+            </p>
+
+            <div class="actions">
+                <a class="btn" th:href="@{/books/{id}/edit(id=${book.id})}">Edit book</a>
+                <a class="btn quiet" href="#reviews">Write a review</a>
+                <a class="btn quiet" th:href="@{/api/books/{id}(id=${book.id})}">View as JSON</a>
+                <form method="post" th:action="@{/books/{id}/delete(id=${book.id})}"
+                      onsubmit="return confirm('Delete this book and all of its reviews?');">
+                    <button class="btn danger" type="submit">Delete book</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <section class="reviews" id="reviews">
+        <div>
+            <h2 th:text="${'Reviews (' + reviews.size() + ')'}">Reviews</h2>
+            <p class="muted" th:if="${reviews.isEmpty()}">No reviews yet. Be the first to share what you think.</p>
+            <div class="review-list">
+                <article class="review" th:each="r : ${reviews}">
+                    <div class="review-head">
+                        <strong th:text="${r.reviewerName}">Nino</strong>
+                        <span class="stars" th:text="${r.stars()}" th:title="${r.rating + ' out of 5'}">★★★★★</span>
+                    </div>
+                    <p th:if="${r.comment != null and !#strings.isEmpty(r.comment)}" th:text="${r.comment}">Comment</p>
+                    <time th:text="${#temporals.format(r.createdAt, 'd MMM yyyy')}">12 Nov 2026</time>
+                </article>
+            </div>
+        </div>
+
+        <!-- "Write a review": @ModelAttribute ReviewForm + @Valid on the server -->
+        <form class="review-form" method="post" th:action="@{/books/{id}/reviews(id=${book.id})}"
+              th:object="${reviewForm}" novalidate>
+            <h2>Write a review</h2>
+
+            <div class="field" th:classappend="${#fields.hasErrors('rating')} ? 'has-error'">
+                <span class="field-label">Your rating</span>
+                <div class="star-input">
+                    <th:block th:each="n : ${#numbers.sequence(5, 1)}">
+                        <input type="radio" th:field="*{rating}" th:value="${n}">
+                        <label th:for="${#ids.prev('rating')}" th:title="${n + (n == 1 ? ' star' : ' stars')}"
+                               th:attr="aria-label=${n + (n == 1 ? ' star' : ' stars')}">★</label>
+                    </th:block>
+                </div>
+                <span class="field-error" th:if="${#fields.hasErrors('rating')}" th:errors="*{rating}">error</span>
+            </div>
+
+            <label class="field" th:classappend="${#fields.hasErrors('reviewerName')} ? 'has-error'">
+                <span>Your name</span>
+                <input type="text" th:field="*{reviewerName}">
+                <span class="field-error" th:if="${#fields.hasErrors('reviewerName')}" th:errors="*{reviewerName}">error</span>
+            </label>
+
+            <label class="field" th:classappend="${#fields.hasErrors('reviewerEmail')} ? 'has-error'">
+                <span>Email <span class="hint">(optional)</span></span>
+                <input type="email" th:field="*{reviewerEmail}">
+                <span class="field-error" th:if="${#fields.hasErrors('reviewerEmail')}" th:errors="*{reviewerEmail}">error</span>
+            </label>
+
+            <label class="field" th:classappend="${#fields.hasErrors('comment')} ? 'has-error'">
+                <span>Comment <span class="hint">(optional)</span></span>
+                <textarea th:field="*{comment}" rows="4"></textarea>
+                <span class="field-error" th:if="${#fields.hasErrors('comment')}" th:errors="*{comment}">error</span>
+            </label>
+
+            <button class="btn" type="submit">Post review</button>
+        </form>
+    </section>
+</main>
+</body>
+</html>

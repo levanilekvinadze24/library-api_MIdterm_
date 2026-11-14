@@ -1,0 +1,18 @@
+# Optional: starts PostgreSQL in Docker with the database the app expects.
+#   docker compose up -d
+# (Skip this if you already have PostgreSQL installed locally - just create the database "library_db".)
+services:
+  postgres:
+    image: postgres:16
+    container_name: library-postgres
+    environment:
+      POSTGRES_DB: library_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - library-data:/var/lib/postgresql/data
+
+volumes:
+  library-data:

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Catalogue')}"></head>
+<body>
+<header th:replace="~{fragments :: topbar('books')}"></header>
+
+<main>
+    <div class="flash ok" th:if="${message}" th:text="${message}"></div>
+
+    <div class="page-head">
+        <div>
+            <h1>Catalogue</h1>
+            <p>Find a book by title, author, category or year.</p>
+        </div>
+        <a class="btn" th:href="@{/books/new}">Add a book</a>
+    </div>
+
+    <div class="catalogue">
+        <!-- Server-side filtering, sorting and pagination: the form sends GET parameters to /books -->
+        <form class="filters" method="get" th:action="@{/books}">
+            <h2>Filter</h2>
+
+            <label class="field">
+                <span>Title</span>
+                <input type="text" name="title" th:value="${title}" placeholder="e.g. Foundation">
+            </label>
+
+            <div class="field">
+                <span class="field-label">Category</span>
+                <div class="pills">
+                    <label class="pill">
+                        <input type="radio" name="categoryId" value="" th:checked="${categoryId == null}">
+                        <span>All</span>
+                    </label>
+                    <label class="pill" th:each="c : ${categories}">
+                        <input type="radio" name="categoryId" th:value="${c.id}" th:checked="${categoryId == c.id}">
+                        <span th:text="${c.name}">Fantasy</span>
+                    </label>
+                </div>
+            </div>
+
+            <label class="field">
+                <span>Author</span>
+                <select name="authorId">
+                    <option value="">Any author</option>
+                    <option th:each="a : ${authors}" th:value="${a.id}" th:text="${a.fullName}"
+                            th:selected="${authorId == a.id}">Author</option>
+                </select>
+            </label>
+
+            <div class="field">
+                <span class="field-label">Published between</span>
+                <div class="row2">
+                    <input type="number" name="minYear" th:value="${minYear}" placeholder="From" aria-label="From year">
+                    <input type="number" name="maxYear" th:value="${maxYear}" placeholder="To" aria-label="To year">
+                </div>
+            </div>
+
+            <label class="field">
+                <span>Sort by</span>
+                <select name="sort">
+                    <option th:each="opt : ${sortOptions}" th:value="${opt.key}" th:text="${opt.value}"
+                            th:selected="${opt.key == sort}">Title</option>
+                </select>
+            </label>
+
+            <div class="row2 order">
+                <label class="field">
+                    <span>Order</span>
+                    <select name="dir">
+                        <option value="asc" th:selected="${dir == 'asc'}">Ascending</option>
+                        <option value="desc" th:selected="${dir == 'desc'}">Descending</option>
+                    </select>
+                </label>
+                <label class="field">
+                    <span>Per page</span>
+                    <select name="size">
+                        <option value="4" th:selected="${size == 4}">4</option>
+                        <option value="8" th:selected="${size == 8}">8</option>
+                        <option value="12" th:selected="${size == 12}">12</option>
+                        <option value="24" th:selected="${size == 24}">24</option>
+                    </select>
+                </label>
+            </div>
+
+            <button class="btn block" type="submit">Show books</button>
+            <a class="reset" th:href="@{/books}">Clear filters</a>
+        </form>
+
+        <section>
+            <p class="results-meta"
+               th:text="${books.totalElements + (books.totalElements == 1 ? ' book' : ' books') + (books.totalPages > 1 ? ', page ' + (books.number + 1) + ' of ' + books.totalPages : '')}">
+                11 books, page 1 of 2
+            </p>
+
+            <div class="shelf">
+                <div class="empty" th:if="${books.empty}">
+                    <h2>No books match these filters</h2>
+                    <p>Try a different title, or <a th:href="@{/books}">clear the filters</a>.</p>
+                </div>
+
+                <a class="book" th:each="book : ${books.content}" th:href="@{/books/{id}(id=${book.id})}">
+                    <span class="cover">
+                        <img th:if="${book.coverImageUrl != null}" th:src="@{${book.coverImageUrl}}" alt="" loading="lazy">
+                        <span class="initial" th:unless="${book.coverImageUrl != null}"
+                              th:text="${#strings.substring(book.title, 0, 1)}">B</span>
+                    </span>
+                    <span class="book-info">
+                        <span class="book-title" th:text="${book.title}">Title</span>
+                        <span class="book-author" th:text="${book.authorName + ', ' + book.publishedYear}">Author, 1950</span>
+                        <span class="book-foot">
+                            <span class="price" th:text="${'$' + #numbers.formatDecimal(book.price, 1, 2)}">$0.00</span>
+                            <span class="rating" th:if="${book.averageRating != null}">
+                                <span th:text="${'★ ' + book.averageRating}">★ 4.5</span>
+                                <span class="count" th:text="${'(' + book.reviewCount + ')'}">(2)</span>
+                            </span>
+                        </span>
+                    </span>
+                </a>
+            </div>
+
+            <nav class="pagination" th:if="${books.totalPages > 1}" aria-label="Pages">
+                <a th:if="${books.hasPrevious()}"
+                   th:href="@{/books(page=${books.number - 1}, size=${size}, sort=${sort}, dir=${dir}, title=${title}, authorId=${authorId}, categoryId=${categoryId}, minYear=${minYear}, maxYear=${maxYear})}">Previous</a>
+                <span class="disabled" th:unless="${books.hasPrevious()}">Previous</span>
+
+                <th:block th:each="i : ${#numbers.sequence(0, books.totalPages - 1)}">
+                    <span class="current" th:if="${i == books.number}" th:text="${i + 1}" aria-current="page">1</span>
+                    <a th:unless="${i == books.number}" th:text="${i + 1}"
+                       th:href="@{/books(page=${i}, size=${size}, sort=${sort}, dir=${dir}, title=${title}, authorId=${authorId}, categoryId=${categoryId}, minYear=${minYear}, maxYear=${maxYear})}">1</a>
+                </th:block>
+
+                <a th:if="${books.hasNext()}"
+                   th:href="@{/books(page=${books.number + 1}, size=${size}, sort=${sort}, dir=${dir}, title=${title}, authorId=${authorId}, categoryId=${categoryId}, minYear=${minYear}, maxYear=${maxYear})}">Next</a>
+                <span class="disabled" th:unless="${books.hasNext()}">Next</span>
+            </nav>
+        </section>
+    </div>
+</main>
+</body>
+</html>
