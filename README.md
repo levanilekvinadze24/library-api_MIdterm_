@@ -8,6 +8,20 @@ validation, file upload, and server-side pagination & sorting.
 
 ---
 
+## Database
+
+| | PostgreSQL (default) | H2 (profile `h2`) |
+|---|---|---|
+| When to use | Main database | Quick run without installing anything; used by the tests |
+| Connection | `jdbc:postgresql://localhost:5432/library_db` | `jdbc:h2:mem:library_db` (in memory) |
+| User / password | `postgres` / `postgres` (change with `DB_USERNAME`, `DB_PASSWORD`, `DB_URL`) | `sa` / empty |
+| Tables | created automatically by Hibernate (`ddl-auto: update`) | created on start, removed on stop |
+| Demo data | inserted on first start (only if tables are empty) | inserted on every start |
+
+Both drivers are already in `pom.xml`, so no extra setup is needed for either option.
+
+---
+
 ## 1. How to run
 
 ### Option A — PostgreSQL (main database)
@@ -32,8 +46,12 @@ Tables are created automatically (`ddl-auto: update`) and demo data is inserted 
 ```bash
 mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=h2
 ```
-In IntelliJ: *Run configuration → Active profiles:* `h2`. H2 console: http://localhost:8080/h2-console
-(JDBC URL `jdbc:h2:mem:library_db`, user `sa`, empty password).
+In IntelliJ IDEA (Community or Ultimate): *Run → Edit Configurations → LibraryApiApplication* and add
+`SPRING_PROFILES_ACTIVE=h2` to **Environment variables** (or `-Dspring.profiles.active=h2` to **VM options**).
+In IntelliJ Ultimate you can also simply type `h2` in the **Active profiles** field.
+On Windows you can also just double-click `run-app.cmd`.
+
+H2 console: http://localhost:8080/h2-console (JDBC URL `jdbc:h2:mem:library_db`, user `sa`, empty password).
 
 ### Useful URLs
 
